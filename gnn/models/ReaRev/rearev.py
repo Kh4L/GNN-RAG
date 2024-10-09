@@ -76,11 +76,11 @@ class ReaRev(BaseModel):
         self.bce_loss_logits = nn.BCEWithLogitsLoss(reduction='none')
         self.mse_loss = torch.nn.MSELoss()
 
-    def get_ent_init(self, local_entity, kb_adj_mat, rel_features):
+    def get_ent_init(self, local_entity, kb_adj_mat, triplet_features):
         if self.encode_type:
             local_entity_emb = self.type_layer(local_entity=local_entity,
                                                edge_list=kb_adj_mat,
-                                               rel_features=rel_features)
+                                               triplet_features=triplet_features)
         else:
             local_entity_emb = self.entity_embedding(local_entity)  # batch_size, max_local_entity, word_dim
             local_entity_emb = self.entity_linear(local_entity_emb)
@@ -92,23 +92,23 @@ class ReaRev(BaseModel):
         """
         Encode relation tokens to vectors.
         """
-        if self.rel_texts is None:
-            rel_features = self.relation_embedding.weight
-            rel_features_inv = self.relation_embedding_inv.weight
-            rel_features = self.relation_linear(rel_features)
-            rel_features_inv = self.relation_linear(rel_features_inv)
+        if self.triplet_texts is None:
+            triplet_features = self.relation_embedding.weight
+            triplet_features_inv = self.relation_embedding_inv.weight
+            triplet_features = self.relation_linear(triplet_features)
+            triplet_features_inv = self.relation_linear(triplet_features_inv)
         else:
             
-            rel_features = self.instruction.question_emb(self.rel_features)
-            rel_features_inv = self.instruction.question_emb(self.rel_features_inv)
+            triplet_features = self.instruction.question_emb(self.triplet_features)
+            triplet_features_inv = self.instruction.question_emb(self.triplet_features_inv)
             
-            rel_features = self.self_att_r(rel_features,  (self.rel_texts != self.instruction.pad_val).float())
-            rel_features_inv = self.self_att_r(rel_features_inv,  (self.rel_texts != self.instruction.pad_val).float())
+            triplet_features = self.self_att_r(triplet_features,  (self.triplet_texts != self.instruction.pad_val).float())
+            triplet_features_inv = self.self_att_r(triplet_features_inv,  (self.triplet_texts != self.instruction.pad_val).float())
             if self.lm == 'lstm':
-                rel_features = self.self_att_r(rel_features, (self.rel_texts != self.num_relation+1).float())
-                rel_features_inv = self.self_att_r(rel_features_inv, (self.rel_texts_inv != self.num_relation+1).float())
+                triplet_features = self.self_att_r(triplet_features, (self.triplet_texts != self.num_relation+1).float())
+                triplet_features_inv = self.self_att_r(triplet_features_inv, (self.triplet_texts_inv != self.num_relation+1).float())
 
-        return rel_features, rel_features_inv
+        return triplet_features, triplet_features_inv
 
 
     def private_module_def(self, args, num_entity, num_relation):
@@ -136,8 +136,8 @@ class ReaRev(BaseModel):
         # batch_size = local_entity.size(0)
         self.local_entity = local_entity
         self.instruction_list, self.attn_list = self.instruction(q_input)
-        rel_features, rel_features_inv  = self.get_rel_feature()
-        self.local_entity_emb = self.get_ent_init(local_entity, kb_adj_mat, rel_features)
+        triplet_features, triplet_features_inv  = self.get_rel_feature()
+        self.local_entity_emb = self.get_ent_init(local_entity, kb_adj_mat, triplet_features)
         self.init_entity_emb = self.local_entity_emb
         self.curr_dist = curr_dist
         self.dist_history = []
@@ -148,8 +148,8 @@ class ReaRev(BaseModel):
                                    local_entity=local_entity,
                                    kb_adj_mat=kb_adj_mat,
                                    local_entity_emb=self.local_entity_emb,
-                                   rel_features=rel_features,
-                                   rel_features_inv=rel_features_inv,
+                                   triplet_features=triplet_features,
+                                   triplet_features_inv=triplet_features_inv,
                                    query_entities=query_entities)
 
 
@@ -175,7 +175,7 @@ class ReaRev(BaseModel):
         current_dist = Variable(seed_dist, requires_grad=True)
 
         q_input= torch.from_numpy(query_text).type('torch.LongTensor').to(self.device)
-        #query_text2 = torch.from_numpy(query_text2).type('torch.LongTensor').to(self.device)
+ 
         if self.lm != 'lstm':
             pad_val = self.instruction.pad_val #tokenizer.convert_tokens_to_ids(self.instruction.tokenizer.pad_token)
             query_mask = (q_input != pad_val).float()
@@ -194,6 +194,7 @@ class ReaRev(BaseModel):
             relational_ins, attn_weight = self.instruction.get_instruction(self.instruction.relational_ins, step=i) 
             self.instruction.instructions.append(relational_ins.unsqueeze(1))
             self.instruction.relational_ins = relational_ins
+
         #relation_ins = torch.cat(self.instruction.instructions, dim=1)
         #query_emb = None
         self.dist_history.append(self.curr_dist)

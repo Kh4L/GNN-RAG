@@ -60,8 +60,8 @@ class Trainer_KBQA(object):
                                   self.num_word)
         
         if args['relation_word_emb']:
-            #self.model.use_rel_texts(self.rel_texts, self.rel_texts_inv)
-            self.model.encode_rel_texts(self.rel_texts, self.rel_texts_inv)
+            #self.model.use_triplet_texts(self.triplet_texts, self.triplet_texts_inv)
+            self.model.encode_triplet_texts(self.triplet_texts, self.triplet_texts_inv)
 
 
         self.model.to(self.device)
@@ -107,8 +107,8 @@ class Trainer_KBQA(object):
         self.num_word = dataset["num_word"]
         self.num_kb_relation = self.test_data.num_kb_relation
         self.num_entity = len(self.entity2id)
-        self.rel_texts = dataset["rel_texts"]
-        self.rel_texts_inv = dataset["rel_texts_inv"]
+        self.triplet_texts = dataset["triplet_texts"]
+        self.triplet_texts_inv = dataset["triplet_texts_inv"]
 
     def load_pretrain(self):
         args = self.args

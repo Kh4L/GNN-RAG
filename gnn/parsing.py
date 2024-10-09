@@ -26,6 +26,8 @@ def add_shared_args(parser):
     parser.add_argument('--word_emb_file', default='word_emb.npy', type=str)
     parser.add_argument('--rel_word_ids', default='rel_word_idx.npy', type=str)
     parser.add_argument('--kge_frozen', default=0, type=int)
+
+    # TODO(spanev): set default to sbert, experiment
     parser.add_argument('--lm', default='lstm', type=str, choices=['lstm', 'bert', 'roberta', 'sbert', 't5','sbert2', 'dbert', 'simcse', 'relbert'])
     parser.add_argument('--lm_frozen', default=1, type=int)
 

@@ -33,7 +33,7 @@ class BaseModel(torch.nn.Module):
         
         self.word_dim = args['word_dim']
 
-        self.rel_texts = None
+        self.triplet_texts = None
 
         
         #self.share_module_def()
@@ -161,19 +161,19 @@ class BaseModel(torch.nn.Module):
             load_tensor = half_tensor
         return np.pad(load_tensor, ((0, num_pad), (0, 0)), 'constant')
 
-    def use_rel_texts(self, rel_texts, rel_texts_inv):
-        self.rel_texts = torch.from_numpy(rel_texts).type('torch.LongTensor').to(self.device)
-        self.rel_texts_inv = torch.from_numpy(rel_texts_inv).type('torch.LongTensor').to(self.device)
+    def use_triplet_texts(self, triplet_texts, triplet_texts_inv):
+        self.triplet_texts = torch.from_numpy(triplet_texts).type('torch.LongTensor').to(self.device)
+        self.triplet_texts_inv = torch.from_numpy(triplet_texts_inv).type('torch.LongTensor').to(self.device)
 
-    def encode_rel_texts(self, rel_texts, rel_texts_inv):
-        self.rel_texts = torch.from_numpy(rel_texts).type('torch.LongTensor').to(self.device)
-        self.rel_texts_inv = torch.from_numpy(rel_texts_inv).type('torch.LongTensor').to(self.device)
+    def encode_triplet_texts(self, triplet_texts, triplet_texts_inv):
+        self.triplet_texts = torch.from_numpy(triplet_texts).type('torch.LongTensor').to(self.device)
+        self.triplet_texts_inv = torch.from_numpy(triplet_texts_inv).type('torch.LongTensor').to(self.device)
         self.instruction.eval()
         with torch.no_grad():
-            self.rel_features = self.instruction.encode_question(self.rel_texts, store=False)
-            self.rel_features_inv = self.instruction.encode_question(self.rel_texts_inv, store=False)
-        self.rel_features.requires_grad = False
-        self.rel_features_inv.requires_grad = False
+            self.triplet_features = self.instruction.encode_question(self.triplet_texts, store=False)
+            self.triplet_features_inv = self.instruction.encode_question(self.triplet_texts_inv, store=False)
+        self.triplet_features.requires_grad = False
+        self.triplet_features_inv.requires_grad = False
 
     def init_hidden(self, num_layer, batch_size, hidden_size):
         return self.instruction.init_hidden(num_layer, batch_size, hidden_size)

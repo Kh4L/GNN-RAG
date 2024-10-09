@@ -35,15 +35,15 @@ class NSMBaseLayer(BaseGNNLayer):
             self.add_module('rel_linear' + str(i), nn.Linear(in_features=entity_dim, out_features=entity_dim))
             self.add_module('e2e_linear' + str(i), nn.Linear(in_features=entity_dim + entity_dim, out_features=entity_dim))
             
-    def init_reason(self, local_entity, kb_adj_mat, local_entity_emb, rel_features, query_node_emb=None):
+    def init_reason(self, local_entity, kb_adj_mat, local_entity_emb, triplet_features, query_node_emb=None):
         batch_size, max_local_entity = local_entity.size()
         self.local_entity_mask = (local_entity != self.num_entity).float()
         self.batch_size = batch_size
         self.max_local_entity = max_local_entity
         self.edge_list = kb_adj_mat
-        self.rel_features = rel_features
+        self.triplet_features = triplet_features
         self.local_entity_emb = local_entity_emb
-        self.num_relation = self.rel_features.size(0)
+        self.num_relation = self.triplet_features.size(0)
         self.possible_cand = []
         self.build_matrix()
         
@@ -88,9 +88,9 @@ class NSMLayer(NSMBaseLayer):
         batch_size = self.batch_size
         max_local_entity = self.max_local_entity
         # num_relation = self.num_relation
-        rel_features = self.rel_features
+        triplet_features = self.triplet_features
         
-        fact_rel = torch.index_select(rel_features, dim=0, index=self.batch_rels) #rels (facts), entity_dim
+        fact_rel = torch.index_select(triplet_features, dim=0, index=self.batch_rels) #rels (facts), entity_dim
 
 
         fact_query = torch.index_select(instruction, dim=0, index=self.batch_ids) #one query per batch entry: rels (facts), entity_dim
@@ -119,9 +119,9 @@ class NSMLayer_back(NSMBaseLayer):
         batch_size = self.batch_size
         max_local_entity = self.max_local_entity
         # num_relation = self.num_relation
-        rel_features = self.rel_features_inv
+        triplet_features = self.triplet_features_inv
         
-        fact_rel = torch.index_select(rel_features, dim=0, index=self.batch_rels)
+        fact_rel = torch.index_select(triplet_features, dim=0, index=self.batch_rels)
         
         fact_query = torch.index_select(instruction, dim=0, index=self.batch_ids)
         fact_val = F.relu(rel_linear(fact_rel) * fact_query)

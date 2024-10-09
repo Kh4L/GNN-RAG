@@ -22,7 +22,7 @@ class TypeLayer(nn.Module):
         self.device = device
         self.norm_rel = norm_rel
 
-    def forward(self, local_entity, edge_list, rel_features):
+    def forward(self, local_entity, edge_list, triplet_features):
         '''
         input_vector: (batch_size, max_local_entity)
         curr_dist: (batch_size, max_local_entity)
@@ -44,7 +44,7 @@ class TypeLayer(nn.Module):
         
         # print("Prepare data:{:.4f}".format(time.time() - st))
         # Step 1: Calculate value for every fact with rel and head
-        fact_rel = torch.index_select(rel_features, dim=0, index=batch_rels)
+        fact_rel = torch.index_select(triplet_features, dim=0, index=batch_rels)
         # fact_val = F.relu(self.kb_self_linear(fact_rel) + self.kb_head_linear(self.linear_drop(fact_ent)))
         fact_val = self.kb_self_linear(fact_rel)
         # fact_val = self.kb_self_linear(fact_rel)#self.kb_head_linear(self.linear_drop(fact_ent))

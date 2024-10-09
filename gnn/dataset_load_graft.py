@@ -187,8 +187,8 @@ def load_data_graft(config, tokenize):
         valid_data = GraftSingleDataLoader(config, word2id, relation2id, entity2id, tokenize, data_type="dev")
         test_data = GraftSingleDataLoader(config, word2id, relation2id, entity2id, tokenize, data_type="test")
         num_word = train_data.num_word
-    relation_texts = test_data.rel_texts
-    relation_texts_inv = test_data.rel_texts_inv
+    relation_texts = test_data.triplet_texts
+    relation_texts_inv = test_data.triplet_texts_inv
     entities_texts = None
     dataset = {
         "train": train_data,
@@ -198,8 +198,8 @@ def load_data_graft(config, tokenize):
         "relation2id": relation2id,
         "word2id": word2id,
         "num_word": num_word,
-        "rel_texts": relation_texts,
-        "rel_texts_inv": relation_texts_inv,
+        "triplet_texts": relation_texts,
+        "triplet_texts_inv": relation_texts_inv,
         "ent_texts": entities_texts
     }
     return dataset

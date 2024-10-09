@@ -82,11 +82,11 @@ class NSM(BaseModel):
             self.instruction = BERTInstruction(args, self.word_embedding, self.num_word, args['lm'])
             self.relation_linear = nn.Linear(in_features=self.word_dim, out_features=entity_dim)
             
-    def get_ent_init(self, local_entity, kb_adj_mat, rel_features):
+    def get_ent_init(self, local_entity, kb_adj_mat, triplet_features):
         if self.encode_type:
             local_entity_emb = self.type_layer(local_entity=local_entity,
                                                edge_list=kb_adj_mat,
-                                               rel_features=rel_features)
+                                               triplet_features=triplet_features)
         else:
             local_entity_emb = self.entity_embedding(local_entity)  # batch_size, max_local_entity, word_dim
             local_entity_emb = self.entity_linear(local_entity_emb)
@@ -95,31 +95,31 @@ class NSM(BaseModel):
 
 
     def get_rel_feature(self):
-        if self.rel_texts is None:
-            rel_features = self.relation_embedding.weight
-            rel_features = self.relation_linear1(rel_features)
+        if self.triplet_texts is None:
+            triplet_features = self.relation_embedding.weight
+            triplet_features = self.relation_linear1(triplet_features)
         else:
-            #rel_features = self.instruction.encode_question(self.rel_texts, store=False)
-            rel_features = self.instruction.question_emb(self.rel_features)
-            #rel_features = self.relation_linear(rel_features)
-            rel_features = self.self_att_r(rel_features,  (self.rel_texts != self.instruction.pad_val).float())
+            #triplet_features = self.instruction.encode_question(self.triplet_texts, store=False)
+            triplet_features = self.instruction.question_emb(self.triplet_features)
+            #triplet_features = self.relation_linear(triplet_features)
+            triplet_features = self.self_att_r(triplet_features,  (self.triplet_texts != self.instruction.pad_val).float())
             if self.lm == 'lstm':
-                rel_features = self.self_att_r(rel_features, (self.rel_texts != self.num_relation+1).float())
+                triplet_features = self.self_att_r(triplet_features, (self.triplet_texts != self.num_relation+1).float())
             # else:
-            #     rel_features = self.self_att_r(rel_features,  (self.rel_texts != self.instruction.pad_val).float())
+            #     triplet_features = self.self_att_r(triplet_features,  (self.triplet_texts != self.instruction.pad_val).float())
 
-        return rel_features
+        return triplet_features
 
     
     def init_reason(self, curr_dist, local_entity, kb_adj_mat, q_input):
         # batch_size = local_entity.size(0)
         self.local_entity = local_entity
         self.instruction_list, self.attn_list = self.instruction(q_input)
-        rel_features = self.get_rel_feature()
-        #print(self.rel_features1)
-        #self.rel_features2 = self.get_rel_feature2()
-        self.local_entity_emb = self.get_ent_init(local_entity, kb_adj_mat, rel_features)
-        #self.kge_entity_emb = self.get_ent_init2(local_entity, kb_adj_mat, self.rel_features)
+        triplet_features = self.get_rel_feature()
+        #print(self.triplet_features1)
+        #self.triplet_features2 = self.get_rel_feature2()
+        self.local_entity_emb = self.get_ent_init(local_entity, kb_adj_mat, triplet_features)
+        #self.kge_entity_emb = self.get_ent_init2(local_entity, kb_adj_mat, self.triplet_features)
         self.curr_dist = curr_dist
         self.dist_history = []
         self.dist_history2 = []
@@ -131,13 +131,13 @@ class NSM(BaseModel):
         self.reasoning.init_reason(local_entity=local_entity,
                                    kb_adj_mat=kb_adj_mat,
                                    local_entity_emb=self.local_entity_emb,
-                                   rel_features=rel_features)
+                                   triplet_features=triplet_features)
 
         if self.lambda_back != 0.0 or self.lambda_constrain != 0.0:
             self.reasoning_back.init_reason(local_entity=local_entity,
                                    kb_adj_mat=kb_adj_mat,
                                    local_entity_emb=self.local_entity_emb,
-                                   rel_features=rel_features)
+                                   triplet_features=triplet_features)
     
     def get_js_div(self, dist_1, dist_2):
         mean_dist = (dist_1 + dist_2) / 2

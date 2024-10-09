@@ -71,11 +71,11 @@ class GraftNet(BaseModel):
             self.instruction = BERTInstruction(args, self.word_embedding, self.num_word, args['lm'])
             self.relation_linear = nn.Linear(in_features=self.word_dim, out_features=entity_dim)
 
-    def get_ent_init(self, local_entity, kb_adj_mat, rel_features):
+    def get_ent_init(self, local_entity, kb_adj_mat, triplet_features):
         if self.encode_type:
             local_entity_emb = self.type_layer(local_entity=local_entity,
                                                edge_list=kb_adj_mat,
-                                               rel_features=rel_features)
+                                               triplet_features=triplet_features)
         else:
             local_entity_emb = self.entity_embedding(local_entity)  # batch_size, max_local_entity, word_dim
             local_entity_emb = self.entity_linear(local_entity_emb)
@@ -83,23 +83,23 @@ class GraftNet(BaseModel):
         return local_entity_emb
     
     def get_rel_feature(self):
-        if self.rel_texts is None:
-            rel_features = self.relation_embedding.weight
-            rel_features = self.relation_linear1(rel_features)
+        if self.triplet_texts is None:
+            triplet_features = self.relation_embedding.weight
+            triplet_features = self.relation_linear1(triplet_features)
         else:
-            #rel_features = self.instruction.encode_question(self.rel_texts, store=False)
-            rel_features = self.rel_features # self.relation_linear(self.rel_features)
-            #print(rel_features.size())
+            #triplet_features = self.instruction.encode_question(self.triplet_texts, store=False)
+            triplet_features = self.triplet_features # self.relation_linear(self.triplet_features)
+            #print(triplet_features.size())
             #print(self.instruction.question_emb)
-            rel_features = self.instruction.question_emb(rel_features)
-            #rel_features = self.relation_linear(rel_features)
-            rel_features = self.self_att_r(rel_features,  (self.rel_texts != self.instruction.pad_val).float())
+            triplet_features = self.instruction.question_emb(triplet_features)
+            #triplet_features = self.relation_linear(triplet_features)
+            triplet_features = self.self_att_r(triplet_features,  (self.triplet_texts != self.instruction.pad_val).float())
             if self.lm == 'lstm':
-                rel_features = self.self_att_r(rel_features, (self.rel_texts != self.num_relation+1).float())
+                triplet_features = self.self_att_r(triplet_features, (self.triplet_texts != self.num_relation+1).float())
             # else:
-            #     rel_features = self.self_att_r(rel_features,  (self.rel_texts != self.instruction.pad_val).float())
+            #     triplet_features = self.self_att_r(triplet_features,  (self.triplet_texts != self.instruction.pad_val).float())
 
-        return rel_features
+        return triplet_features
     
     
     def init_reason(self, curr_dist, local_entity, kb_adj_mat, kb_adj_mat_graft, kb_fact_rel, q_input):
@@ -109,8 +109,8 @@ class GraftNet(BaseModel):
         self.query_hidden_emb = self.instruction.query_hidden_emb
         self.query_node_emb = self.instruction.query_node_emb
         self.query_mask = self.instruction.query_mask
-        rel_features = self.get_rel_feature()
-        self.local_entity_emb = self.get_ent_init(local_entity, kb_adj_mat, rel_features)
+        triplet_features = self.get_rel_feature()
+        self.local_entity_emb = self.get_ent_init(local_entity, kb_adj_mat, triplet_features)
         self.curr_dist = curr_dist
         self.dist_history = []
         self.action_probs = []
@@ -122,7 +122,7 @@ class GraftNet(BaseModel):
                                    kb_adj_mat_graft=kb_adj_mat_graft,
                                    kb_fact_rel = kb_fact_rel,
                                    local_entity_emb=self.local_entity_emb,
-                                   rel_features=rel_features,
+                                   triplet_features=triplet_features,
                                    query_node_emb=self.query_node_emb)
     
     def calc_loss_label(self, curr_dist, teacher_dist, label_valid):

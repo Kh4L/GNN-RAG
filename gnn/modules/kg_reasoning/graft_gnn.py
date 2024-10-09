@@ -42,16 +42,16 @@ class GraftLayer(BaseGNNLayer):
 
            
 
-    def init_reason(self, local_entity, kb_adj_mat, kb_adj_mat_graft, kb_fact_rel, local_entity_emb, rel_features, query_node_emb=None):
+    def init_reason(self, local_entity, kb_adj_mat, kb_adj_mat_graft, kb_fact_rel, local_entity_emb, triplet_features, query_node_emb=None):
         batch_size, max_local_entity = local_entity.size()
         self.local_entity_mask = (local_entity != self.num_entity).float()
         self.batch_size = batch_size
         self.max_local_entity = max_local_entity
         self.edge_list = kb_adj_mat
         self.edge_list2 = kb_adj_mat_graft
-        self.rel_features = rel_features
+        self.triplet_features = triplet_features
         self.local_entity_emb = local_entity_emb
-        self.num_relation = self.rel_features.size(0)
+        self.num_relation = self.triplet_features.size(0)
         self.possible_cand = []
         self.kb_fact_rel = kb_fact_rel #torch.LongTensor(kb_fact_rel).to(self.device)
         _, self.max_fact = kb_fact_rel.shape
@@ -64,14 +64,14 @@ class GraftLayer(BaseGNNLayer):
     def compute_attention(self, query_hidden_emb, query_mask):
         batch_size = self.batch_size
         max_local_entity = self.max_local_entity
-        rel_features = self.rel_features
-        num_rels = rel_features.size(0)
+        triplet_features = self.triplet_features
+        num_rels = triplet_features.size(0)
 
         #print(self.kb_fact_rel, self.kb_fact_rel.size())
-        fact_rel = torch.index_select(rel_features, dim=0, index=self.batch_rels)
-        #batch_rels = rel_features[self.batch_ids, self.batch_rels]
+        fact_rel = torch.index_select(triplet_features, dim=0, index=self.batch_rels)
+        #batch_rels = triplet_features[self.batch_ids, self.batch_rels]
         #print(fact_rel.size())
-        local_fact_emb = rel_features[self.kb_fact_rel]#torch.sparse.mm(self.fact2rel_mat, fact_rel).view(batch_size, -1, self.entity_dim)
+        local_fact_emb = triplet_features[self.kb_fact_rel]#torch.sparse.mm(self.fact2rel_mat, fact_rel).view(batch_size, -1, self.entity_dim)
         
         # attention fact2question
         div = float(np.sqrt(self.entity_dim))
@@ -90,9 +90,9 @@ class GraftLayer(BaseGNNLayer):
         batch_size = self.batch_size
         max_local_entity = self.max_local_entity
         # num_relation = self.num_relation
-        rel_features = self.rel_features
+        triplet_features = self.triplet_features
 
-        local_fact_emb = rel_features[self.kb_fact_rel]
+        local_fact_emb = triplet_features[self.kb_fact_rel]
         e2f_emb = F.relu(kb_self_linear(local_fact_emb) + torch.bmm(self.entity2fact_mat, kb_head_linear(self.linear_drop(self.local_entity_emb)))) # batch_size, max_fact, entity_dim
         e2f_softmax_normalized = self.W_tilde.unsqueeze(dim=2) * torch.bmm(self.entity2fact_mat, (curr_dist / self.e2f_softmax).unsqueeze(dim=2)) # batch_size, max_fact, 1
         e2f_emb = e2f_emb * e2f_softmax_normalized # batch_size, max_fact, entity_dim

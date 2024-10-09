@@ -43,16 +43,16 @@ class ReasonGNNLayer(BaseGNNLayer):
                 self.add_module('pos_emb_inv' + str(i), nn.Embedding(self.num_relation, entity_dim))
         self.lin_m =  nn.Linear(in_features=(self.num_ins)*entity_dim, out_features=entity_dim)
 
-    def init_reason(self, local_entity, kb_adj_mat, local_entity_emb, rel_features, rel_features_inv, query_entities, query_node_emb=None):
+    def init_reason(self, local_entity, kb_adj_mat, local_entity_emb, triplet_features, triplet_features_inv, query_entities, query_node_emb=None):
         batch_size, max_local_entity = local_entity.size()
         self.local_entity_mask = (local_entity != self.num_entity).float()
         self.batch_size = batch_size
         self.max_local_entity = max_local_entity
         self.edge_list = kb_adj_mat
-        self.rel_features = rel_features
-        self.rel_features_inv = rel_features_inv
+        self.triplet_features = triplet_features
+        self.triplet_features_inv = triplet_features_inv
         self.local_entity_emb = local_entity_emb
-        self.num_relation = self.rel_features.size(0)
+        self.num_relation = self.triplet_features.size(0)
         self.possible_cand = []
         self.build_matrix()
         self.query_entities = query_entities
@@ -65,10 +65,10 @@ class ReasonGNNLayer(BaseGNNLayer):
         batch_size = self.batch_size
         max_local_entity = self.max_local_entity
         # num_relation = self.num_relation
-        rel_features = self.rel_features
+        triplet_features = self.triplet_features
         
         
-        fact_rel = torch.index_select(rel_features, dim=0, index=self.batch_rels)
+        fact_rel = torch.index_select(triplet_features, dim=0, index=self.batch_rels)
         
         fact_query = torch.index_select(instruction, dim=0, index=self.batch_ids)
         if pos_emb is not None:
@@ -92,9 +92,9 @@ class ReasonGNNLayer(BaseGNNLayer):
         batch_size = self.batch_size
         max_local_entity = self.max_local_entity
         # num_relation = self.num_relation
-        rel_features = self.rel_features_inv
+        triplet_features = self.triplet_features_inv
         
-        fact_rel = torch.index_select(rel_features, dim=0, index=self.batch_rels)
+        fact_rel = torch.index_select(triplet_features, dim=0, index=self.batch_rels)
         
         fact_query = torch.index_select(instruction, dim=0, index=self.batch_ids)
         if pos_emb_inv is not None:
@@ -115,6 +115,8 @@ class ReasonGNNLayer(BaseGNNLayer):
         
         return neighbor_rep
 
+
+    # TODO(spanev): remove combine? simple cat?
     def combine(self,emb):
         """
         Combines instruction-specific representations.
@@ -156,8 +158,7 @@ class ReasonGNNLayer(BaseGNNLayer):
             neighbor_reps.append(neighbor_rep)
 
         neighbor_reps = torch.cat(neighbor_reps, dim=2)
-        
-        
+
         next_local_entity_emb = torch.cat((self.local_entity_emb, neighbor_reps), dim=2)
         #print(next_local_entity_emb.size())
         self.local_entity_emb = F.relu(e2e_linear(self.linear_drop(next_local_entity_emb)))

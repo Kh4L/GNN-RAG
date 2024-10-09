@@ -170,8 +170,8 @@ class BasicDataLoader(object):
         if self.rel_word_emb:
             self.build_rel_words(self.tokenize)
         else:
-            self.rel_texts = None
-            self.rel_texts_inv = None
+            self.triplet_texts = None
+            self.triplet_texts_inv = None
             self.ent_texts = None
 
 
@@ -381,17 +381,17 @@ class BasicDataLoader(object):
             
         self.max_rel_words = max_rel_words
         if tokenize == 'lstm':
-            self.rel_texts = np.full((self.num_kb_relation + 1, self.max_rel_words), len(self.word2id), dtype=int)
-            self.rel_texts_inv = np.full((self.num_kb_relation + 1, self.max_rel_words), len(self.word2id), dtype=int)
+            self.triplet_texts = np.full((self.num_kb_relation + 1, self.max_rel_words), len(self.word2id), dtype=int)
+            self.triplet_texts_inv = np.full((self.num_kb_relation + 1, self.max_rel_words), len(self.word2id), dtype=int)
             for rel_id,tokens in enumerate(rel_words):
                 for j, word in enumerate(tokens):
                     if j < self.max_rel_words:
                             if word in self.word2id:
-                                self.rel_texts[rel_id, j] = self.word2id[word]
-                                self.rel_texts_inv[rel_id, j] = self.word2id[word]
+                                self.triplet_texts[rel_id, j] = self.word2id[word]
+                                self.triplet_texts_inv[rel_id, j] = self.word2id[word]
                             else:
-                                self.rel_texts[rel_id, j] = len(self.word2id)
-                                self.rel_texts_inv[rel_id, j] = len(self.word2id)
+                                self.triplet_texts[rel_id, j] = len(self.word2id)
+                                self.triplet_texts_inv[rel_id, j] = len(self.word2id)
         else:
             if tokenize == 'bert':
                 tokenizer_name = 'bert-base-uncased'
@@ -410,8 +410,8 @@ class BasicDataLoader(object):
             
             tokenizer = AutoTokenizer.from_pretrained(tokenizer_name)
             pad_val = tokenizer.convert_tokens_to_ids(tokenizer.pad_token)
-            self.rel_texts = np.full((self.num_kb_relation + 1, self.max_rel_words), pad_val, dtype=int)
-            self.rel_texts_inv = np.full((self.num_kb_relation + 1, self.max_rel_words), pad_val, dtype=int)
+            self.triplet_texts = np.full((self.num_kb_relation + 1, self.max_rel_words), pad_val, dtype=int)
+            self.triplet_texts_inv = np.full((self.num_kb_relation + 1, self.max_rel_words), pad_val, dtype=int)
             
             for rel_id,words in enumerate(rel_words):
 
@@ -419,15 +419,15 @@ class BasicDataLoader(object):
                     pad_to_max_length=True, return_attention_mask = False, truncation=True)
                 tokens_inv =  tokenizer.encode_plus(text=' '.join(words[::-1]), max_length=self.max_rel_words, \
                     pad_to_max_length=True, return_attention_mask = False, truncation=True)
-                self.rel_texts[rel_id] = np.array(tokens['input_ids'])
-                self.rel_texts_inv[rel_id] = np.array(tokens_inv['input_ids'])
+                self.triplet_texts[rel_id] = np.array(tokens['input_ids'])
+                self.triplet_texts_inv[rel_id] = np.array(tokens_inv['input_ids'])
 
 
         
         #print(rel_words)
         #print(len(rel_words), len(self.relation2id))
         assert len(rel_words) == len(self.relation2id)
-        #print(self.rel_texts, self.max_rel_words)
+        #print(self.triplet_texts, self.max_rel_words)
 
     def create_kb_adj_mats(self, sample_id):
 
@@ -667,8 +667,8 @@ def load_data(config, tokenize):
         valid_data = SingleDataLoader(config, word2id, relation2id, entity2id, tokenize, data_type="dev")
         test_data = SingleDataLoader(config, word2id, relation2id, entity2id, tokenize, data_type="test")
         num_word = train_data.num_word
-    relation_texts = test_data.rel_texts
-    relation_texts_inv = test_data.rel_texts_inv
+    relation_texts = test_data.triplet_texts
+    relation_texts_inv = test_data.triplet_texts_inv
     entities_texts = None
     dataset = {
         "train": train_data,
@@ -678,8 +678,8 @@ def load_data(config, tokenize):
         "relation2id": relation2id,
         "word2id": word2id,
         "num_word": num_word,
-        "rel_texts": relation_texts,
-        "rel_texts_inv": relation_texts_inv,
+        "triplet_texts": relation_texts,
+        "triplet_texts_inv": relation_texts_inv,
         "ent_texts": entities_texts
     }
     return dataset
